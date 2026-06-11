@@ -10,4 +10,6 @@ def create_app():
     migrate.init_app(app, db)
     cors.init_app(app)
 
+    from app.models import user, provider , application
+
     return app
