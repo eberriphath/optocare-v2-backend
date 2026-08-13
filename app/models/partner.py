@@ -1,8 +1,8 @@
 from app.extensions import db
 from datetime import datetime
 
-class Provider(db.Model):
-    __tablename__ = "providers"
+class Partner(db.Model):
+    __tablename__ = "partners"
 
     id = db.Column(db.Integer, primary_key=True)
 
@@ -19,4 +19,4 @@ class Provider(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):
-        return f"<Provider {self.clinic_name}>"
+        return f"<Partner {self.clinic_name}>"
