@@ -7,6 +7,12 @@ class Application(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        nullable=True
+    )
+
     # Applicant information
     full_name = db.Column(db.String(120), nullable=False)
     position = db.Column(db.String(100), nullable=False)

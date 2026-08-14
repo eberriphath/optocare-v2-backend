@@ -151,6 +151,7 @@ def approve_application(application_id):
     application.reviewed_by = admin.id
     application.reviewed_at = datetime.now(timezone.utc)
     application.review_notes = None
+    application.user_id = user.id
     application.activation_token = activation_token
     application.activation_expires_at = (
         datetime.now(timezone.utc) + timedelta(hours=48)
