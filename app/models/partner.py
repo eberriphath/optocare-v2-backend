@@ -1,22 +1,58 @@
 from app.extensions import db
 from datetime import datetime
 
+
 class Partner(db.Model):
     __tablename__ = "partners"
 
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
 
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        nullable=False,
+        unique=True
+    )
 
-    clinic_name = db.Column(db.String(150), nullable=False)
-    location = db.Column(db.String(150), nullable=False)
-    specialty = db.Column(db.String(100), nullable=False)
+    company_name = db.Column(
+        db.String(150),
+        nullable=False
+    )
 
-    description = db.Column(db.Text)
+    partner_type = db.Column(
+        db.String(30),
+        nullable=False
+    )
 
-    is_verified = db.Column(db.Boolean, default=False)
+    location = db.Column(
+        db.String(150),
+        nullable=True
+    )
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    specialty = db.Column(
+        db.String(100),
+        nullable=True
+    )
+
+    description = db.Column(
+        db.Text,
+        nullable=True
+    )
+
+    is_verified = db.Column(
+        db.Boolean,
+        default=True,
+        nullable=False
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        nullable=False
+    )
 
     def __repr__(self):
-        return f"<Partner {self.clinic_name}>"
+        return f"<Partner {self.company_name}>"
