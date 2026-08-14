@@ -17,6 +17,14 @@ class Partner(db.Model):
         unique=True
     )
 
+    user = db.relationship(
+        "User",
+        backref=db.backref(
+            "partner",
+            uselist=False
+        )
+    )
+
     company_name = db.Column(
         db.String(150),
         nullable=False

@@ -49,6 +49,17 @@ class Application(db.Model):
         nullable=True
     )
 
+    activation_token = db.Column(
+        db.String(255),
+        unique=True,
+        nullable=True
+    )
+
+    activation_expires_at = db.Column(
+        db.DateTime,
+        nullable=True
+    )
+
     created_at = db.Column(
         db.DateTime,
         default=datetime.utcnow,
