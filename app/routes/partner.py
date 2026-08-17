@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 
 from app.extensions import db
-from app.models import Partner, Service, Product
+from app.models import Partner, Service, Product, Review
 from app.utils.decorators import partner_required
 from app.utils.security import hash_password, check_password
 
@@ -656,4 +656,62 @@ def get_dashboard():
             "total_products": total_products,
             "available_products": available_products
         }
+    }), 200
+
+@partner_bp.route("/reviews", methods=["GET"])
+@partner_required
+def get_partner_reviews():
+
+    partner = request.current_user.partner
+
+    reviews = Review.query.filter_by(
+        partner_id=partner.id
+    ).order_by(
+        Review.created_at.desc()
+    ).all()
+
+    total_reviews = len(reviews)
+
+    approved_reviews = [
+        review for review in reviews
+        if review.is_approved
+    ]
+
+    pending_reviews = [
+        review for review in reviews
+        if not review.is_approved
+    ]
+
+    approved_count = len(approved_reviews)
+    pending_count = len(pending_reviews)
+
+    average_rating = (
+        sum(review.rating for review in approved_reviews)
+        / approved_count
+        if approved_count > 0
+        else 0
+    )
+
+    return jsonify({
+        "partner": {
+            "id": partner.id,
+            "company_name": partner.company_name
+        },
+        "statistics": {
+            "total_reviews": total_reviews,
+            "approved_reviews": approved_count,
+            "pending_reviews": pending_count,
+            "average_rating": round(average_rating, 2)
+        },
+        "reviews": [
+            {
+                "id": review.id,
+                "reviewer_name": review.reviewer_name,
+                "rating": review.rating,
+                "comment": review.comment,
+                "is_approved": review.is_approved,
+                "created_at": review.created_at.isoformat()
+            }
+            for review in reviews
+        ]
     }), 200

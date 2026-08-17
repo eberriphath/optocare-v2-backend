@@ -64,6 +64,11 @@ def jwt_required(f):
                 "error": "User no longer exists"
             }), 401
 
+        if not user.is_active:
+            return jsonify({
+                "error": "Account is not active"
+            }), 401
+
         # Attach authenticated user to request
         request.current_user = user
 

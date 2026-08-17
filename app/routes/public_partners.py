@@ -10,6 +10,22 @@ public_partners_bp = Blueprint(
 )
 
 
+def public_partner_query():
+    """
+    Returns only partners who are:
+    - verified
+    - attached to an active user account
+    """
+    return (
+        Partner.query
+        .join(Partner.user)
+        .filter(
+            Partner.is_verified.is_(True),
+            Partner.user.has(is_active=True)
+        )
+    )
+
+
 @public_partners_bp.route("", methods=["GET"])
 def get_partners():
 
@@ -35,9 +51,7 @@ def get_partners():
             "error": "per_page must be between 1 and 100"
         }), 400
 
-    query = Partner.query.filter_by(
-        is_verified=True
-    )
+    query = public_partner_query()
 
     if location:
         query = query.filter(
@@ -94,9 +108,8 @@ def get_partners():
 @public_partners_bp.route("/<int:partner_id>", methods=["GET"])
 def get_partner(partner_id):
 
-    partner = Partner.query.filter_by(
-        id=partner_id,
-        is_verified=True
+    partner = public_partner_query().filter(
+        Partner.id == partner_id
     ).first()
 
     if not partner:
@@ -117,12 +130,15 @@ def get_partner(partner_id):
         }
     }), 200
 
-@public_partners_bp.route("/<int:partner_id>/services", methods=["GET"])
+
+@public_partners_bp.route(
+    "/<int:partner_id>/services",
+    methods=["GET"]
+)
 def get_partner_services(partner_id):
 
-    partner = Partner.query.filter_by(
-        id=partner_id,
-        is_verified=True
+    partner = public_partner_query().filter(
+        Partner.id == partner_id
     ).first()
 
     if not partner:
@@ -148,20 +164,25 @@ def get_partner_services(partner_id):
                 "name": service.name,
                 "description": service.description,
                 "category": service.category,
-                "price": float(service.price)
-                if service.price is not None
-                else None
+                "price": (
+                    float(service.price)
+                    if service.price is not None
+                    else None
+                )
             }
             for service in services
         ]
     }), 200
 
-@public_partners_bp.route("/<int:partner_id>/products", methods=["GET"])
+
+@public_partners_bp.route(
+    "/<int:partner_id>/products",
+    methods=["GET"]
+)
 def get_partner_products(partner_id):
 
-    partner = Partner.query.filter_by(
-        id=partner_id,
-        is_verified=True
+    partner = public_partner_query().filter(
+        Partner.id == partner_id
     ).first()
 
     if not partner:
@@ -188,9 +209,11 @@ def get_partner_products(partner_id):
                 "description": product.description,
                 "category": product.category,
                 "brand": product.brand,
-                "price": float(product.price)
-                if product.price is not None
-                else None,
+                "price": (
+                    float(product.price)
+                    if product.price is not None
+                    else None
+                ),
                 "stock_quantity": product.stock_quantity,
                 "image_url": product.image_url
             }

@@ -1,7 +1,9 @@
 from flask import Blueprint, jsonify
 from datetime import datetime, timezone, timedelta
 
-from app.models import Application, User, Partner
+from app.models import (
+    Application, User, Partner, Review, Service, Product
+)
 from app.utils.tokens import generate_activation_token
 from app.utils.decorators import admin_required
 from app.utils.security import hash_password
@@ -230,5 +232,375 @@ def reject_application(application_id):
             "reviewed_by": application.reviewed_by,
             "reviewed_at": application.reviewed_at.isoformat(),
             "review_notes": application.review_notes
+        }
+    }), 200
+
+@admin_bp.route("/partners", methods=["GET"])
+@admin_required
+def get_partners():
+
+    partners = Partner.query.order_by(
+        Partner.company_name.asc()
+    ).all()
+
+    return jsonify({
+        "partners": [
+            {
+                "id": partner.id,
+                "company_name": partner.company_name,
+                "partner_type": partner.partner_type,
+                "location": partner.location,
+                "specialty": partner.specialty,
+                "description": partner.description,
+                "is_verified": partner.is_verified,
+                "created_at": partner.created_at.isoformat(),
+
+                "user": {
+                    "id": partner.user.id,
+                    "name": partner.user.name,
+                    "email": partner.user.email,
+                    "role": partner.user.role,
+                    "is_active": partner.user.is_active,
+                    "must_set_password": partner.user.must_set_password
+                }
+            }
+            for partner in partners
+        ]
+    }), 200
+
+
+@admin_bp.route("/partners/<int:partner_id>", methods=["GET"])
+@admin_required
+def get_partner(partner_id):
+
+    partner = Partner.query.get(partner_id)
+
+    if not partner:
+        return jsonify({
+            "error": "Partner not found"
+        }), 404
+
+    return jsonify({
+        "partner": {
+            "id": partner.id,
+            "company_name": partner.company_name,
+            "partner_type": partner.partner_type,
+            "location": partner.location,
+            "specialty": partner.specialty,
+            "description": partner.description,
+            "is_verified": partner.is_verified,
+            "created_at": partner.created_at.isoformat(),
+
+            "user": {
+                "id": partner.user.id,
+                "name": partner.user.name,
+                "email": partner.user.email,
+                "role": partner.user.role,
+                "is_active": partner.user.is_active,
+                "must_set_password": partner.user.must_set_password,
+                "created_at": partner.user.created_at.isoformat()
+            }
+        }
+    }), 200
+
+
+@admin_bp.route(
+    "/partners/<int:partner_id>/status",
+    methods=["PATCH"]
+)
+@admin_required
+def update_partner_status(partner_id):
+
+    partner = Partner.query.get(partner_id)
+
+    if not partner:
+        return jsonify({
+            "error": "Partner not found"
+        }), 404
+
+    user = partner.user
+
+    data = request.get_json()
+
+    if not data:
+        return jsonify({
+            "error": "Request body is required"
+        }), 400
+
+    if "is_active" not in data:
+        return jsonify({
+            "error": "'is_active' is required"
+        }), 400
+
+    if not isinstance(data["is_active"], bool):
+        return jsonify({
+            "error": "'is_active' must be true or false"
+        }), 400
+
+    user.is_active = data["is_active"]
+
+    db.session.commit()
+
+    return jsonify({
+        "message": (
+            "Partner activated successfully"
+            if user.is_active
+            else "Partner deactivated successfully"
+        ),
+        "partner": {
+            "id": partner.id,
+            "company_name": partner.company_name,
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "name": user.name,
+                "role": user.role,
+                "is_active": user.is_active,
+                "must_set_password": user.must_set_password
+            }
+        }
+    }), 200
+
+
+@admin_bp.route(
+    "/partners/<int:partner_id>/verification",
+    methods=["PATCH"]
+)
+@admin_required
+def update_partner_verification(partner_id):
+
+    partner = Partner.query.get(partner_id)
+
+    if not partner:
+        return jsonify({
+            "error": "Partner not found"
+        }), 404
+
+    data = request.get_json()
+
+    if not data:
+        return jsonify({
+            "error": "Request body is required"
+        }), 400
+
+    if "is_verified" not in data:
+        return jsonify({
+            "error": "'is_verified' is required"
+        }), 400
+
+    if not isinstance(data["is_verified"], bool):
+        return jsonify({
+            "error": "'is_verified' must be true or false"
+        }), 400
+
+    partner.is_verified = data["is_verified"]
+
+    db.session.commit()
+
+    return jsonify({
+        "message": (
+            "Partner verified successfully"
+            if partner.is_verified
+            else "Partner verification removed successfully"
+        ),
+        "partner": {
+            "id": partner.id,
+            "company_name": partner.company_name,
+            "is_verified": partner.is_verified
+        }
+    }), 200
+
+
+@admin_bp.route("/reviews", methods=["GET"])
+@admin_required
+def get_reviews():
+
+    reviews = Review.query.order_by(
+        Review.created_at.desc()
+    ).all()
+
+    return jsonify({
+        "reviews": [
+            {
+                "id": review.id,
+                "partner_id": review.partner_id,
+                "user_id": review.user_id,
+                "reviewer_name": review.reviewer_name,
+                "reviewer_email": review.reviewer_email,
+                "rating": review.rating,
+                "comment": review.comment,
+                "is_approved": review.is_approved,
+                "admin_notes": review.admin_notes,
+                "created_at": review.created_at.isoformat(),
+                "updated_at": review.updated_at.isoformat()
+            }
+            for review in reviews
+        ]
+    }), 200
+
+
+@admin_bp.route("/reviews/<int:review_id>", methods=["GET"])
+@admin_required
+def get_review(review_id):
+
+    review = Review.query.get(review_id)
+
+    if not review:
+        return jsonify({
+            "error": "Review not found"
+        }), 404
+
+    return jsonify({
+        "review": {
+            "id": review.id,
+            "partner_id": review.partner_id,
+            "user_id": review.user_id,
+            "reviewer_name": review.reviewer_name,
+            "reviewer_email": review.reviewer_email,
+            "rating": review.rating,
+            "comment": review.comment,
+            "is_approved": review.is_approved,
+            "admin_notes": review.admin_notes,
+            "created_at": review.created_at.isoformat(),
+            "updated_at": review.updated_at.isoformat()
+        }
+    }), 200
+
+
+@admin_bp.route(
+    "/reviews/<int:review_id>",
+    methods=["PATCH"]
+)
+@admin_required
+def moderate_review(review_id):
+
+    review = Review.query.get(review_id)
+
+    if not review:
+        return jsonify({
+            "error": "Review not found"
+        }), 404
+
+    data = request.get_json()
+
+    if not data:
+        return jsonify({
+            "error": "Request body is required"
+        }), 400
+
+    allowed_fields = {
+        "is_approved",
+        "admin_notes"
+    }
+
+    for field in data:
+        if field not in allowed_fields:
+            return jsonify({
+                "error": f"You cannot update '{field}'"
+            }), 400
+
+    if "is_approved" in data:
+
+        if not isinstance(data["is_approved"], bool):
+            return jsonify({
+                "error": "'is_approved' must be true or false"
+            }), 400
+
+        review.is_approved = data["is_approved"]
+
+    if "admin_notes" in data:
+
+        admin_notes = data["admin_notes"]
+
+        if admin_notes is not None and not isinstance(
+            admin_notes,
+            str
+        ):
+            return jsonify({
+                "error": "'admin_notes' must be a string or null"
+            }), 400
+
+        if isinstance(admin_notes, str):
+            admin_notes = admin_notes.strip()
+
+            if len(admin_notes) > 2000:
+                return jsonify({
+                    "error": "Admin notes must not exceed 2000 characters"
+                }), 400
+
+        review.admin_notes = admin_notes
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Review updated successfully",
+        "review": {
+            "id": review.id,
+            "partner_id": review.partner_id,
+            "reviewer_name": review.reviewer_name,
+            "rating": review.rating,
+            "comment": review.comment,
+            "is_approved": review.is_approved,
+            "admin_notes": review.admin_notes,
+            "updated_at": review.updated_at.isoformat()
+        }
+    }), 200
+
+@admin_bp.route("/dashboard", methods=["GET"])
+@admin_required
+def get_dashboard():
+
+    total_users = User.query.count()
+
+    total_partners = Partner.query.count()
+
+    active_partners = Partner.query.join(
+        User,
+        Partner.user_id == User.id
+    ).filter(
+        User.is_active.is_(True)
+    ).count()
+
+    verified_partners = Partner.query.filter_by(
+        is_verified=True
+    ).count()
+
+    pending_applications = Application.query.filter_by(
+        status="pending"
+    ).count()
+
+    approved_applications = Application.query.filter_by(
+        status="approved"
+    ).count()
+
+    rejected_applications = Application.query.filter_by(
+        status="rejected"
+    ).count()
+
+    total_products = Product.query.count()
+
+    total_services = Service.query.count()
+
+    pending_reviews = Review.query.filter_by(
+        is_approved=False
+    ).count()
+
+    approved_reviews = Review.query.filter_by(
+        is_approved=True
+    ).count()
+
+    return jsonify({
+        "statistics": {
+            "total_users": total_users,
+            "total_partners": total_partners,
+            "active_partners": active_partners,
+            "verified_partners": verified_partners,
+            "pending_applications": pending_applications,
+            "approved_applications": approved_applications,
+            "rejected_applications": rejected_applications,
+            "total_products": total_products,
+            "total_services": total_services,
+            "pending_reviews": pending_reviews,
+            "approved_reviews": approved_reviews
         }
     }), 200

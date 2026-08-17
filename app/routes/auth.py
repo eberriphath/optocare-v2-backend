@@ -39,7 +39,7 @@ def login():
     if not user.is_active:
         return jsonify({
             "error": "Account is not active"
-        })
+        }), 403
 
     if not check_password(password, user.password_hash):
         return jsonify({
