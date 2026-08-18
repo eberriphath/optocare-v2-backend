@@ -1,6 +1,5 @@
 from flask import Flask
 
-from app.routes.activation import activation_bp
 from app.routes.admin import admin_bp
 from app.config import Config
 from app.extensions import db, migrate, cors
@@ -28,7 +27,6 @@ def create_app():
     app.register_blueprint(auth_bp)
     app.register_blueprint(applications_bp)
     app.register_blueprint(admin_bp)
-    app.register_blueprint(activation_bp)
     app.register_blueprint(partner_bp)
     app.register_blueprint(public_partners_bp)
     app.register_blueprint(public_reviews_bp)
