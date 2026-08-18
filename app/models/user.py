@@ -38,6 +38,19 @@ class User(db.Model):
         default=False
     )
 
+    # Password reset
+    password_reset_token = db.Column(
+        db.String(255),
+        nullable=True,
+        unique=True,
+        index=True
+    )
+
+    password_reset_expires_at = db.Column(
+        db.DateTime,
+        nullable=True
+    )
+
     created_at = db.Column(
         db.DateTime,
         default=datetime.utcnow,

@@ -14,3 +14,17 @@ class Config:
 
     SQLALCHEMY_DATABASE_URI = DATABASE_URL
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    RESEND_API_KEY = os.getenv("RESEND_API_KEY")
+    MAIL_FROM_EMAIL = os.getenv(
+        "MAIL_FROM_EMAIL",
+         "notifications@optocare.net"
+    )
+    MAIL_FROM_NAME = os.getenv(
+        "MAIL_FROM_NAME",
+        "Optocare"
+    )
+    FRONTEND_URL = os.getenv(
+        "FRONTEND_URL",
+        "https://optocare.net"
+    )
