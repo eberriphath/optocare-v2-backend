@@ -102,9 +102,13 @@ def send_new_application_admin_email(
 
 def send_application_approved_email(
     recipient,
-    name
+    name,
+    activation_url
 ):
-    html = application_approved_email(name)
+    html = application_approved_email(
+        name,
+        activation_url
+    )
 
     return send_email(
         to=recipient,
@@ -114,6 +118,11 @@ def send_application_approved_email(
             f"Hello {name},\n\n"
             "We're pleased to let you know that your application "
             "to become an Optocare partner has been approved.\n\n"
+            "Your partner account has been created. "
+            "Please activate your account and set your password "
+            "using the following link:\n\n"
+            f"{activation_url}\n\n"
+            "This activation link expires in 48 hours.\n\n"
             "Welcome to Optocare."
         )
     )

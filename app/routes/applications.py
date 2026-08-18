@@ -1,9 +1,13 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from email_validator import validate_email, EmailNotValidError
 
 from app.extensions import db
 from app.models import Application, User
 
+from app.services.email_service import (
+    send_application_received_email,
+    send_new_application_admin_email,
+)
 
 applications_bp = Blueprint(
     "applications",
@@ -193,6 +197,41 @@ def create_application():
 
     db.session.add(application)
     db.session.commit()
+
+    # ---------------------------------------------------------
+    # Email notifications
+    # ---------------------------------------------------------
+
+    # Notify the applicant
+    try:
+        send_application_received_email(
+            recipient=application.email,
+            name=application.full_name
+        )
+    except Exception:
+        current_app.logger.exception(
+            "Failed to send application received email "
+            "for application %s",
+            application.id
+        )
+
+    # Notify the admin
+    try:
+        admin_email = current_app.config.get("ADMIN_EMAIL")
+
+        if admin_email:
+            send_new_application_admin_email(
+                recipient=admin_email,
+                name=application.full_name,
+                company_name=application.company_name
+            )
+
+    except Exception:
+        current_app.logger.exception(
+            "Failed to send new application admin email "
+            "for application %s",
+            application.id
+        )
 
     return jsonify({
         "message": "Partner application submitted successfully",

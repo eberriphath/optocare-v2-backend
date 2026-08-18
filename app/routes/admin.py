@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request, current_app
 from datetime import datetime, timezone, timedelta
 
 from app.models import (
@@ -8,7 +8,11 @@ from app.utils.tokens import generate_activation_token
 from app.utils.decorators import admin_required
 from app.utils.security import hash_password
 from app.extensions import db
-from flask import request
+
+from app.services.email_service import (
+    send_application_approved_email,
+    send_application_rejected_email,
+)
 import secrets
 
 
@@ -161,6 +165,34 @@ def approve_application(application_id):
 
     db.session.commit()
 
+    # ---------------------------------------------------------
+    # Approval email notification
+    # ---------------------------------------------------------
+
+    try:
+        activation_base_url = current_app.config.get(
+            "ACTIVATION_URL"
+        )
+
+        if activation_base_url:
+            activation_url = (
+                f"{activation_base_url}"
+                f"?token={activation_token}"
+            )
+
+            send_application_approved_email(
+                recipient=application.email,
+                name=application.full_name,
+                activation_url=activation_url
+            )
+
+    except Exception:
+        current_app.logger.exception(
+            "Failed to send application approval email "
+            "for application %s",
+            application.id
+        )
+
     return jsonify({
         "message": "Application approved successfully",
 
@@ -189,7 +221,6 @@ def approve_application(application_id):
             "partner_type": partner.partner_type
         }
     }), 200
-
 
 @admin_bp.route("/applications/<int:application_id>/reject", methods=["PATCH"])
 @admin_required

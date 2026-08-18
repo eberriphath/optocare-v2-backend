@@ -28,3 +28,4 @@ class Config:
         "FRONTEND_URL",
         "https://optocare.net"
     )
+    ACTIVATION_URL = os.getenv("ACTIVATION_URL")

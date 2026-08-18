@@ -205,7 +205,7 @@ def new_application_admin_email(name, company_name):
     )
 
 
-def application_approved_email(name):
+def application_approved_email(name, activation_url):
     content = f"""
     <h1>Application approved</h1>
 
@@ -217,12 +217,24 @@ def application_approved_email(name):
     </p>
 
     <div class="notice">
-        <strong>What's next?</strong>
+        <strong>Your partner account is ready</strong>
         <p>
-            Your partner account is now ready. You can sign in to your
-            account and begin managing your Optocare profile.
+            Your Optocare partner account has been created successfully.
+            Before you can sign in, you need to activate your account
+            and create your password.
         </p>
     </div>
+
+    <p style="text-align: center;">
+        <a href="{activation_url}" class="button">
+            Activate Your Account
+        </a>
+    </p>
+
+    <p>
+        This activation link is valid for 48 hours. If the link expires,
+        you will need to request a new activation link.
+    </p>
 
     <p>
         Welcome to Optocare.
