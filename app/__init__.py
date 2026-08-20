@@ -18,7 +18,11 @@ def create_app():
 
     db.init_app(app)
     migrate.init_app(app, db)
-    cors.init_app(app)
+    cors.init_app(
+        app,
+        resources={r"/*": {"origins": "http://localhost:5173"}},
+        supports_credentials=True
+        )
 
     from app.models import User, Partner, Application
 

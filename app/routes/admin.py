@@ -576,6 +576,146 @@ def update_service_status(service_id):
     }), 200
 
 
+# =========================================================
+# PRODUCTS
+# =========================================================
+
+@admin_bp.route("/products", methods=["GET"])
+@admin_required
+def get_products():
+
+    products = Product.query.order_by(
+        Product.created_at.desc()
+    ).all()
+
+    return jsonify({
+        "products": [
+            {
+                "id": product.id,
+                "name": product.name,
+                "description": product.description,
+                "category": product.category,
+                "brand": product.brand,
+                "price": (
+                    float(product.price)
+                    if product.price is not None
+                    else None
+                ),
+                "stock_quantity": product.stock_quantity,
+                "is_available": product.is_available,
+                "image_url": product.image_url,
+                "created_at": product.created_at.isoformat(),
+                "updated_at": product.updated_at.isoformat(),
+
+                "partner": {
+                    "id": product.partner.id,
+                    "company_name": product.partner.company_name,
+
+                    "user": {
+                        "id": product.partner.user.id,
+                        "name": product.partner.user.name,
+                        "email": product.partner.user.email
+                    }
+                }
+            }
+            for product in products
+        ]
+    }), 200
+
+
+@admin_bp.route("/products/<int:product_id>", methods=["GET"])
+@admin_required
+def get_product(product_id):
+
+    product = Product.query.get(product_id)
+
+    if not product:
+        return jsonify({
+            "error": "Product not found"
+        }), 404
+
+    return jsonify({
+        "product": {
+            "id": product.id,
+            "name": product.name,
+            "description": product.description,
+            "category": product.category,
+            "brand": product.brand,
+            "price": (
+                float(product.price)
+                if product.price is not None
+                else None
+            ),
+            "stock_quantity": product.stock_quantity,
+            "is_available": product.is_available,
+            "image_url": product.image_url,
+            "created_at": product.created_at.isoformat(),
+            "updated_at": product.updated_at.isoformat(),
+
+            "partner": {
+                "id": product.partner.id,
+                "company_name": product.partner.company_name,
+                "partner_type": product.partner.partner_type,
+
+                "user": {
+                    "id": product.partner.user.id,
+                    "name": product.partner.user.name,
+                    "email": product.partner.user.email
+                }
+            }
+        }
+    }), 200
+
+
+@admin_bp.route(
+    "/products/<int:product_id>/availability",
+    methods=["PATCH"]
+)
+@admin_required
+def update_product_availability(product_id):
+
+    product = Product.query.get(product_id)
+
+    if not product:
+        return jsonify({
+            "error": "Product not found"
+        }), 404
+
+    data = request.get_json()
+
+    if not data:
+        return jsonify({
+            "error": "Request body is required"
+        }), 400
+
+    if "is_available" not in data:
+        return jsonify({
+            "error": "'is_available' is required"
+        }), 400
+
+    if not isinstance(data["is_available"], bool):
+        return jsonify({
+            "error": "'is_available' must be true or false"
+        }), 400
+
+    product.is_available = data["is_available"]
+
+    db.session.commit()
+
+    return jsonify({
+        "message": (
+            "Product marked as available"
+            if product.is_available
+            else "Product marked as unavailable"
+        ),
+        "product": {
+            "id": product.id,
+            "name": product.name,
+            "is_available": product.is_available
+        }
+    }), 200
+
+
 @admin_bp.route("/reviews", methods=["GET"])
 @admin_required
 def get_reviews():
