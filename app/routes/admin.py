@@ -442,6 +442,140 @@ def update_partner_verification(partner_id):
     }), 200
 
 
+# =========================================================
+# SERVICES
+# =========================================================
+
+@admin_bp.route("/services", methods=["GET"])
+@admin_required
+def get_services():
+
+    services = Service.query.order_by(
+        Service.created_at.desc()
+    ).all()
+
+    return jsonify({
+        "services": [
+            {
+                "id": service.id,
+                "name": service.name,
+                "description": service.description,
+                "category": service.category,
+                "price": (
+                    float(service.price)
+                    if service.price is not None
+                    else None
+                ),
+                "is_active": service.is_active,
+                "created_at": service.created_at.isoformat(),
+                "updated_at": service.updated_at.isoformat(),
+
+                "partner": {
+                    "id": service.partner.id,
+                    "company_name": service.partner.company_name,
+
+                    "user": {
+                        "id": service.partner.user.id,
+                        "name": service.partner.user.name,
+                        "email": service.partner.user.email
+                    }
+                }
+            }
+            for service in services
+        ]
+    }), 200
+
+
+@admin_bp.route("/services/<int:service_id>", methods=["GET"])
+@admin_required
+def get_service(service_id):
+
+    service = Service.query.get(service_id)
+
+    if not service:
+        return jsonify({
+            "error": "Service not found"
+        }), 404
+
+    return jsonify({
+        "service": {
+            "id": service.id,
+            "name": service.name,
+            "description": service.description,
+            "category": service.category,
+            "price": (
+                float(service.price)
+                if service.price is not None
+                else None
+            ),
+            "is_active": service.is_active,
+            "created_at": service.created_at.isoformat(),
+            "updated_at": service.updated_at.isoformat(),
+
+            "partner": {
+                "id": service.partner.id,
+                "company_name": service.partner.company_name,
+                "partner_type": service.partner.partner_type,
+
+                "user": {
+                    "id": service.partner.user.id,
+                    "name": service.partner.user.name,
+                    "email": service.partner.user.email
+                }
+            }
+        }
+    }), 200
+
+
+@admin_bp.route(
+    "/services/<int:service_id>/status",
+    methods=["PATCH"]
+)
+@admin_required
+def update_service_status(service_id):
+
+    service = Service.query.get(service_id)
+
+    if not service:
+        return jsonify({
+            "error": "Service not found"
+        }), 404
+
+    data = request.get_json()
+
+    if not data:
+        return jsonify({
+            "error": "Request body is required"
+        }), 400
+
+    if "is_active" not in data:
+        return jsonify({
+            "error": "'is_active' is required"
+        }), 400
+
+    if not isinstance(data["is_active"], bool):
+        return jsonify({
+            "error": "'is_active' must be true or false"
+        }), 400
+
+    service.is_active = data["is_active"]
+
+    db.session.commit()
+
+    return jsonify({
+        "message": (
+            "Service activated successfully"
+            if service.is_active
+            else "Service deactivated successfully"
+        ),
+        "service": {
+            "id": service.id,
+            "name": service.name,
+            "is_active": service.is_active
+        }
+    }), 200
+
+
 @admin_bp.route("/reviews", methods=["GET"])
 @admin_required
 def get_reviews():
