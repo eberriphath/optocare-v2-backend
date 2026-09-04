@@ -9,6 +9,8 @@ from app.routes.partner import partner_bp
 from app.models import User, Partner, Application, Service
 from app.routes.public_partners import public_partners_bp
 from app.routes.public_reviews import public_reviews_bp
+from app.routes.public_services import public_services_bp
+from app.routes.public_products import public_products_bp
 
 
 def create_app():
@@ -35,6 +37,9 @@ def create_app():
     app.register_blueprint(public_partners_bp)
     app.register_blueprint(public_reviews_bp)
 
+    app.register_blueprint(public_products_bp)
+    app.register_blueprint(public_services_bp)
+    
     from app.commands import register_commands
     register_commands(app)
 
