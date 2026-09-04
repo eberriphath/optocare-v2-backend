@@ -22,7 +22,7 @@ def create_app():
     migrate.init_app(app, db)
     cors.init_app(
         app,
-        resources={r"/*": {"origins": ["http://localhost:5173", "http://localhost:5174"]}},
+        resources={r"/*": {"origins": ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5173"]}},
         supports_credentials=True
         )
 
@@ -39,7 +39,7 @@ def create_app():
 
     app.register_blueprint(public_products_bp)
     app.register_blueprint(public_services_bp)
-    
+
     from app.commands import register_commands
     register_commands(app)
 
