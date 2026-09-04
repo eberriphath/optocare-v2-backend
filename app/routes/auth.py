@@ -8,6 +8,7 @@ from app.config import Config
 from app.models import User, Application
 from app.utils.security import check_password, hash_password
 from app.utils.decorators import jwt_required
+from app.services.email_service import send_password_reset_email
 from app.extensions import db
 
 
@@ -101,7 +102,10 @@ def forgot_password():
     # cannot discover which emails have accounts.
     if not user:
         return jsonify({
-            "message": "If an account exists for this email, password reset instructions will be provided."
+            "message": (
+                "If an account exists for this email, "
+                "password reset instructions will be provided."
+            )
         }), 200
 
     # Generate secure random token
@@ -121,14 +125,40 @@ def forgot_password():
 
     db.session.commit()
 
-    # DEVELOPMENT ONLY
-    # Later this token will be sent through email.
-    return jsonify({
-        "message": "If an account exists for this email, password reset instructions will be provided.",
-        "development_token": raw_token,
-        "expires_in_minutes": 30
-    }), 200
+    # Build frontend password reset URL
+    reset_url = (
+        f"{Config.FRONTEND_URL}/reset-password"
+        f"?token={raw_token}"
+    )
 
+    try:
+
+        send_password_reset_email(
+            recipient=user.email,
+            name=user.name,
+            reset_url=reset_url
+        )
+
+    except Exception as error:
+
+        print(
+            "Password reset email failed:",
+            error
+        )
+
+        return jsonify({
+            "error": (
+                "Unable to send password reset email. "
+                "Please try again later."
+            )
+        }), 500
+
+    return jsonify({
+        "message": (
+            "If an account exists for this email, "
+            "password reset instructions will be provided."
+        )
+    }), 200
 
 @auth_bp.route("/reset-password", methods=["POST"])
 def reset_password():
@@ -240,6 +270,81 @@ def me():
         "name": user.name,
         "email": user.email,
         "role": user.role
+    }), 200
+
+@auth_bp.route("/change-password", methods=["POST"])
+@jwt_required
+def change_password():
+
+    data = request.get_json()
+
+    if not data:
+        return jsonify({
+            "error": "Request body is required"
+        }), 400
+
+    current_password = data.get("current_password")
+    new_password = data.get("new_password")
+    confirm_password = data.get("confirm_password")
+
+    if not current_password:
+        return jsonify({
+            "error": "Current password is required"
+        }), 400
+
+    if not new_password:
+        return jsonify({
+            "error": "New password is required"
+        }), 400
+
+    if not confirm_password:
+        return jsonify({
+            "error": "Password confirmation is required"
+        }), 400
+
+    user = request.current_user
+
+    # Verify current password
+    if not check_password(
+        current_password,
+        user.password_hash
+    ):
+        return jsonify({
+            "error": "Current password is incorrect"
+        }), 401
+
+    # Password length
+    if len(new_password) < 8:
+        return jsonify({
+            "error": "New password must be at least 8 characters"
+        }), 400
+
+    # Confirm new password
+    if new_password != confirm_password:
+        return jsonify({
+            "error": "Passwords do not match"
+        }), 400
+
+    # Prevent reusing current password
+    if check_password(
+        new_password,
+        user.password_hash
+    ):
+        return jsonify({
+            "error": "New password must be different from current password"
+        }), 400
+
+    # Hash and save new password
+    user.password_hash = hash_password(
+        new_password
+    )
+
+    user.must_set_password = False
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Password changed successfully"
     }), 200
 
 
