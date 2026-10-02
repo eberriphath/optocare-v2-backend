@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask
 
 from app.routes.admin import admin_bp
@@ -23,11 +25,22 @@ def create_app():
 
     db.init_app(app)
     migrate.init_app(app, db)
+
+    cors_origins = [
+        origin.strip()
+        for origin in os.getenv("CORS_ORIGINS", "").split(",")
+        if origin.strip()
+    ]
+
     cors.init_app(
         app,
-        resources={r"/*": {"origins": ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5173"]}},
+        resources={
+            r"/*": {
+                "origins": cors_origins
+            }
+        },
         supports_credentials=True
-        )
+    )
 
     from app.models import User, Partner, Application
 
@@ -39,15 +52,14 @@ def create_app():
     app.register_blueprint(partner_bp)
     app.register_blueprint(public_partners_bp)
     app.register_blueprint(public_reviews_bp)
-
     app.register_blueprint(public_products_bp)
     app.register_blueprint(public_services_bp)
-
     app.register_blueprint(clients_bp)
     app.register_blueprint(prescriptions_bp)
     app.register_blueprint(orders_bp)
 
     from app.commands import register_commands
+
     register_commands(app)
 
     return app
