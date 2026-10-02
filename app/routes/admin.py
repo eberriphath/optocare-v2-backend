@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request, current_app
 from datetime import datetime, timezone, timedelta
 
 from app.models import (
-    Application, User, Partner, Review, Service, Product
+    Application, User, Partner, Review, Service, Product, Client, Prescription, Order,
 )
 from app.utils.tokens import generate_activation_token
 from app.utils.decorators import admin_required
@@ -894,18 +894,69 @@ def get_dashboard():
         is_approved=True
     ).count()
 
+    # Client / prescription / order statistics
+
+    total_clients = Client.query.count()
+
+    total_prescriptions = Prescription.query.count()
+
+    total_orders = Order.query.count()
+
+    submitted_orders = Order.query.filter_by(
+        status="submitted"
+    ).count()
+
+    under_review_orders = Order.query.filter_by(
+        status="under_review"
+    ).count()
+
+    confirmed_orders = Order.query.filter_by(
+        status="confirmed"
+    ).count()
+
+    processing_orders = Order.query.filter_by(
+        status="processing"
+    ).count()
+
+    ready_orders = Order.query.filter_by(
+        status="ready"
+    ).count()
+
+    completed_orders = Order.query.filter_by(
+        status="completed"
+    ).count()
+
+    unassigned_orders = Order.query.filter(
+        Order.partner_id.is_(None)
+    ).count()
+
     return jsonify({
         "statistics": {
             "total_users": total_users,
             "total_partners": total_partners,
             "active_partners": active_partners,
             "verified_partners": verified_partners,
+
             "pending_applications": pending_applications,
             "approved_applications": approved_applications,
             "rejected_applications": rejected_applications,
+
             "total_products": total_products,
             "total_services": total_services,
+
             "pending_reviews": pending_reviews,
-            "approved_reviews": approved_reviews
+            "approved_reviews": approved_reviews,
+
+            "total_clients": total_clients,
+            "total_prescriptions": total_prescriptions,
+            "total_orders": total_orders,
+
+            "submitted_orders": submitted_orders,
+            "under_review_orders": under_review_orders,
+            "confirmed_orders": confirmed_orders,
+            "processing_orders": processing_orders,
+            "ready_orders": ready_orders,
+            "completed_orders": completed_orders,
+            "unassigned_orders": unassigned_orders,
         }
     }), 200

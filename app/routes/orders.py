@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 
 from app.extensions import db
-from app.models import Client, Order, Prescription, Partner
+from app.models import Client, Order, Prescription, Partner, partner
 from app.utils.decorators import admin_required
 from app.utils.number_generator import ( 
     generate_order_number,
@@ -24,6 +24,15 @@ ORDER_STATUSES = {
     "ready",
     "completed",
 }
+
+ORDER_STATUS_FLOW = [
+    "submitted",
+    "under_review",
+    "confirmed",
+    "processing",
+    "ready",
+    "completed",
+]
 
 
 def serialize_order(order):
@@ -183,15 +192,35 @@ def create_order():
     partner_id = data.get("partner_id")
 
     if partner_id:
-        partner = db.session.get(
-            Partner,
-            partner_id
-        )
+     partner = db.session.get(
+        Partner,
+        partner_id
+    )
 
-        if not partner:
-            return jsonify({
-                "message": "Partner not found."
-            }), 404
+    if not partner:
+        return jsonify({
+            "message": "Partner not found."
+        }), 404
+
+    if not partner.is_verified:
+        return jsonify({
+            "message": "Partner is not verified."
+        }), 400
+
+    if not partner.user:
+        return jsonify({
+            "message": "Partner account is not linked to a user."
+        }), 400
+
+    if partner.user.role != "partner":
+        return jsonify({
+            "message": "Linked account is not a partner account."
+        }), 400
+
+    if not partner.user.is_active:
+        return jsonify({
+            "message": "Partner account is inactive."
+        }), 400
 
     order = Order(
         order_number=generate_order_number(),
@@ -517,6 +546,71 @@ def update_order(order_id):
 
 
 @orders_bp.route(
+    "/<int:order_id>/status",
+    methods=["PUT"]
+)
+@admin_required
+def update_order_status(order_id):
+    order = db.session.get(Order, order_id)
+
+    if not order:
+        return jsonify({
+            "message": "Order not found."
+        }), 404
+
+    data = request.get_json(silent=True) or {}
+
+    new_status = data.get("status")
+
+    if not new_status:
+        return jsonify({
+            "message": "Status is required."
+        }), 400
+
+    if new_status not in ORDER_STATUSES:
+        return jsonify({
+            "message": "Invalid order status."
+        }), 400
+
+    if order.status == new_status:
+        return jsonify({
+            "message": "Order already has this status.",
+            "order": serialize_order(order)
+        }), 200
+
+    try:
+        current_index = ORDER_STATUS_FLOW.index(
+            order.status
+        )
+
+        new_index = ORDER_STATUS_FLOW.index(
+            new_status
+        )
+
+    except ValueError:
+        return jsonify({
+            "message": "Order has an invalid current status."
+        }), 400
+
+    if new_index != current_index + 1:
+        return jsonify({
+            "message": (
+                "Order status can only move to "
+                "the next stage."
+            )
+        }), 400
+
+    order.status = new_status
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Order status updated successfully.",
+        "order": serialize_order(order)
+    }), 200
+
+
+@orders_bp.route(
     "/<int:order_id>/partner",
     methods=["PUT"]
 )
@@ -557,6 +651,26 @@ def assign_order_partner(order_id):
         return jsonify({
             "message": "Partner not found."
         }), 404
+
+    if not partner.is_verified:
+        return jsonify({
+            "message": "Partner is not verified."
+        }), 400
+
+    if not partner.user:
+        return jsonify({
+            "message": "Partner account is not linked to a user."
+        }), 400
+
+    if partner.user.role != "partner":
+        return jsonify({
+            "message": "Linked account is not a partner account."
+        }), 400
+
+    if not partner.user.is_active:
+        return jsonify({
+            "message": "Partner account is inactive."
+        }), 400
 
     order.partner_id = partner.id
 
