@@ -15,6 +15,11 @@ class Config:
     SQLALCHEMY_DATABASE_URI = DATABASE_URL
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_pre_ping": True,
+        "pool_recycle": 300,
+    }
+
     RESEND_API_KEY = os.getenv("RESEND_API_KEY")
     MAIL_FROM_EMAIL = os.getenv(
         "MAIL_FROM_EMAIL",
